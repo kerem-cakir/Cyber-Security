@@ -23,8 +23,8 @@ DOM-basedSunucuya gitmez, client-side JS DOM'u güvensiz işler
 
 
 * html<script>alert(1)</script>
-* <img src=x onerror=alert(1)>
-* <svg onload=alert(1)>
+* "<img src=x onerror=alert(1)>"
+* "<svg onload=alert(1)>"
 * "><script>alert(document.domain)</script>
 * javascript:alert(1)
 
